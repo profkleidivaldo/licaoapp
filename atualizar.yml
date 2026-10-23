@@ -1,0 +1,24 @@
+name: Atualizar lição e capas
+on:
+  schedule: [{cron: '0 9 * * *'}]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pyyaml
+      - run: python tools/atualizar_capas.py
+        continue-on-error: true
+      - run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/Adventech/sabbath-school-lessons.git /tmp/ss
+          git -C /tmp/ss sparse-checkout set src/pt
+          python tools/gerar_licao.py /tmp/ss/src/pt auto
+      - run: |
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add -A
+          git diff --cached --quiet || (git commit -m "Atualiza lição e capas" && git push)
